@@ -9,6 +9,10 @@ on:
         description: "Seed state only (mark current items as seen, send nothing)"
         type: boolean
         default: false
+      test_ping:
+        description: "Send one test signal to the webhook (no news, no state change)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write   # to commit state.json back
@@ -34,6 +38,7 @@ jobs:
           CHIP_WEBHOOK_KEY: ${{ secrets.CHIP_WEBHOOK_KEY }}
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
           CHIP_SEED: ${{ inputs.seed && '1' || '' }}
+          CHIP_TEST_PING: ${{ inputs.test_ping && '1' || '' }}
         run: python3 monitor.py
 
       # Commit state when something was sent/seeded (prevents re-sends), plus hourly housekeeping.

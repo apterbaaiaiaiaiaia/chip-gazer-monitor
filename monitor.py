@@ -414,6 +414,17 @@ def main():
     t_start = time.time()
     url, key = os.environ.get("CHIP_WEBHOOK_URL", "").strip(), os.environ.get("CHIP_WEBHOOK_KEY", "").strip()
     dry = os.environ.get("CHIP_DRY_RUN") == "1" or not url or not key
+    if os.environ.get("CHIP_TEST_PING") == "1":  # manual connectivity test: one tiny payload, no state changes
+        if not url or not key:
+            log("TEST PING: CHIP_WEBHOOK_URL/KEY secrets are missing")
+            return 1
+        try:
+            log("TEST PING POST ok status=%s" % post(url, key, {"test": True, "count": 0, "items": [],
+                "note": "Connectivity test from chip-gazer-monitor. Not news."}, cfg))
+            return 0
+        except Exception as e:
+            log("TEST PING POST failed: %s" % str(e)[:300])
+            return 1
     state = load_state()
     seeding = os.environ.get("CHIP_SEED") == "1" or not state.get("seeded")
     now = datetime.now(UTC)
