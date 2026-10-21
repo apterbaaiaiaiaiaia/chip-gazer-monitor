@@ -1,0 +1,55 @@
+name: chip-news-monitor
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # every 5 min, 24/7 (GitHub may delay scheduled runs a few minutes under load)
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "Seed state only (mark current items as seen, send nothing)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # to commit state.json back
+
+concurrency:
+  group: chip-news-monitor
+  cancel-in-progress: false   # never overlap; queued runs wait
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # Ubuntu runners ship Python 3.12; monitor.py is stdlib-only, so no setup/pip step is needed.
+      - name: Run one poll cycle
+        id: poll
+        env:
+          CHIP_WEBHOOK_URL: ${{ secrets.CHIP_WEBHOOK_URL }}
+          CHIP_WEBHOOK_KEY: ${{ secrets.CHIP_WEBHOOK_KEY }}
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          CHIP_SEED: ${{ inputs.seed && '1' || '' }}
+        run: python3 monitor.py
+
+      # Commit state when something was sent/seeded (prevents re-sends), plus hourly housekeeping.
+      - name: Commit state
+        if: always()
+        run: |
+          if [ "${{ steps.poll.outputs.important }}" != "1" ] && [ "$(date -u +%M)" -ge 5 ]; then
+            echo "nothing important, skipping commit"; exit 0
+          fi
+          git config user.name "chip-monitor-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state.json
+          if git diff --cached --quiet; then echo "state unchanged"; exit 0; fi
+          git commit -q -m "state: $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3; do
+            git push && exit 0
+            git pull --rebase -X theirs -q || true
+          done
+          exit 1
