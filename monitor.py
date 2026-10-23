@@ -75,9 +75,11 @@ def child_text(el, name):
     return ""
 
 
-def parse_date(s):
+def parse_date(s, tz=None):
+    """tz: optional "+09:00" style offset applied to naive dates (feeds that omit their zone)."""
     if not s:
         return None
+    s = re.sub(r"([+-]\d\d):(\d\d)$", r"\1\2", s.strip()) if re.match(r"[A-Z][a-z]{2}, ", s.strip()) else s.strip()
     d = None
     try:
         d = email.utils.parsedate_to_datetime(s)
@@ -87,7 +89,7 @@ def parse_date(s):
         except Exception:
             return None
     if d.tzinfo is None:
-        d = d.replace(tzinfo=UTC)
+        d = d.replace(tzinfo=datetime.strptime(tz, "%z").tzinfo if tz else UTC)
     return d.astimezone(UTC)
 
 
@@ -95,9 +97,19 @@ def clean(s):
     return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", s or ""))).strip()
 
 
-def parse_feed(data):
+def xml_root(data):
+    try:
+        return ET.fromstring(data)
+    except ET.ParseError:  # some feeds (e.g. DigiTimes) ship broken UTF-8 bytes / control chars
+        txt = data.decode("utf-8", errors="replace") if isinstance(data, bytes) else data
+        txt = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", txt.replace("\ufffd", ""))
+        txt = re.sub(r"^\s*<\?xml[^>]*\?>", "", txt)
+        return ET.fromstring(txt)
+
+
+def parse_feed(data, tz=None):
     items = []
-    for el in ET.fromstring(data).iter():
+    for el in xml_root(data).iter():
         if strip_ns(el.tag) not in ("item", "entry"):
             continue
         link, publisher = "", ""
@@ -107,10 +119,10 @@ def parse_feed(data):
                 link = (c.get("href") or c.text or "").strip() or link
             elif n == "source":
                 publisher = clean(c.text)
-        pub = child_text(el, "pubDate") or child_text(el, "updated") or child_text(el, "published")
+        pub = child_text(el, "pubDate") or child_text(el, "updated") or child_text(el, "published") or child_text(el, "date")
         items.append({"title": clean(child_text(el, "title")), "link": link,
                       "guid": child_text(el, "guid") or child_text(el, "id") or link,
-                      "published_dt": parse_date(pub), "publisher": publisher})
+                      "published_dt": parse_date(pub, tz), "publisher": publisher})
     return items
 
 
@@ -247,7 +259,7 @@ def collect(cfg, state, test_mode=False):
         t0 = time.time()
         try:
             data = fetch(fd["_url"], DEFAULT_UA, timeout, cache)
-            return fd, (None if data is None else parse_feed(data)), None, time.time() - t0
+            return fd, (None if data is None else parse_feed(data, fd.get("tz"))), None, time.time() - t0
         except Exception as e:
             return fd, [], str(e)[:80], time.time() - t0
 

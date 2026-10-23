@@ -84,6 +84,55 @@
       "publisher": "CNBC"
     },
     {
+      "name": "Focus Taiwan (CNA)",
+      "url": "https://feeds.feedburner.com/rsscna/engnews",
+      "tier": "top",
+      "publisher": "Focus Taiwan"
+    },
+    {
+      "name": "DigiTimes Asia",
+      "url": "https://www.digitimes.com/rss/daily.xml",
+      "tier": "top",
+      "publisher": "DigiTimes"
+    },
+    {
+      "name": "Korea Herald Business",
+      "url": "https://www.koreaherald.com/rss/kh_Business",
+      "tier": "top",
+      "publisher": "Korea Herald"
+    },
+    {
+      "name": "Korea Times Business",
+      "url": "https://www.koreatimes.co.kr/www/rss/biz.xml",
+      "tier": "top",
+      "publisher": "Korea Times"
+    },
+    {
+      "name": "BusinessKorea",
+      "url": "https://www.businesskorea.co.kr/rss/allArticle.xml",
+      "tier": "top",
+      "publisher": "BusinessKorea",
+      "tz": "+09:00"
+    },
+    {
+      "name": "The Elec",
+      "url": "https://www.thelec.net/rss/allArticle.xml",
+      "tier": "top",
+      "publisher": "The Elec"
+    },
+    {
+      "name": "TrendForce Semis",
+      "url": "https://www.trendforce.com/feed/Semiconductors.html",
+      "tier": "top",
+      "publisher": "TrendForce"
+    },
+    {
+      "name": "Tom's Hardware",
+      "url": "https://www.tomshardware.com/feeds.xml",
+      "tier": "top",
+      "publisher": "Tom's Hardware"
+    },
+    {
       "name": "GN: Nvidia",
       "url": "gnews:Nvidia",
       "tier": "gnews"
@@ -135,7 +184,7 @@
     }
   ],
   "filters": {
-    "comment": "Case-insensitive regexes on the headline. Score = tier (primary 3, top 2) + core entity 1 + material event 1 + strong term 2 (capped once each). Must have (core entity OR strong term) AND (material event OR strong term), not excluded, and score >= score_threshold.",
+    "comment": "Case-insensitive regexes on the headline. Score = tier (primary 3, top 2) + core entity 1 + material event 1 + strong term 2 (capped once each). Must have (core entity OR strong term) AND (material event OR strong term), not excluded, and score >= score_threshold. Non-gnews feeds without a tier listed here score like 'top' (base 2): entity + event = 4 passes.",
     "publisher_whitelist": [
       "Reuters",
       "Bloomberg",
@@ -171,6 +220,7 @@
       "asml",
       "sk ?hynix",
       "samsung (electronics|chip|memory|foundry|hbm)",
+      "samsung\\b.*\\b(fabs?|foundry|taylor|pyeongtaek|hbm\\d*e?|dram|nand|chips?|chipmaking|semiconductors?)\\b",
       "amkor",
       "\\bintel\\b",
       "arm holdings",
@@ -252,6 +302,7 @@
       "outage",
       "\\bstrikes?\\b",
       "walkout",
+      "\\bunions?\\b",
       "\\bvaluation\\b",
       "\\bipo\\b",
       "spin ?off",
@@ -298,7 +349,7 @@
       "graphics card",
       "laptop",
       "review:",
-      "\\breview\\b",
+      "(?<!ipo )\\breview\\b(?!.*\\b(ipo|listing|merger|acquisition|antitrust)\\b)",
       "hands-on",
       "giveaway",
       "prediction:",
